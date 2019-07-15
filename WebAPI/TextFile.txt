@@ -1,0 +1,87 @@
+﻿1. Do the initial Configuration of IdentityCore
+2. Create  Physical DB based on EFModel ApplicationUser.
+   --Open Package manager Console, to perform migration
+      Add-Migration "InitialCreate"
+   --To create PhysicalDB
+      Update-Database
+3. Now we need to Add user to AspNet Users Table using IdentityCore.
+   --Add new controller ApplicationUserController
+   (Inside this controller we need a web api method for User registeration. In order to work with User registeration/Authentication
+    we need to use two classes from IdentityCore which are User manager and signIn manager. So we need to inject these two classes inside 
+	this controller.)
+	For that create two privvate properties and inject those into constructor.
+4. Create API for User registeration of type Http.
+   In order to consume this api we need to decorate with HttpPost. Create an action api method "Post Application USer"of type
+   async which return a Task<object> result.
+   Inside this API method we have to create an USer. So while making request into this Web API method we have to pass corresponding 
+   user details like name, email, pwd, fullname etc.
+   For this will create a new model file ApplicationUserModel. and will pass this as parameter to api method.
+
+5. We can test this api method using postman by making Post Request http://localhost:54277/api/ApplicationUser/Regiter.
+   Pass some raw json data.
+  
+   {
+      "UserName" : "Krishna",
+	  "Email": "test@test.com",
+	  "Password":"12",
+	  "FullName":"Krishna Murari"
+   }
+    You will see some validation errors for pwd. As there are default validations by Identity Core --IdentityUser class
+
+6. We can customise these validations in startup.cs as per our requirement in ConfigureServices().
+
+Using JWT(JSON web Token) for Authorization.
+
+JWT -->Header
+	   Payload
+	   Signature
+
+Thus JWT typically looks like xxxx.yyyy.zzzzz
+                                |    |    |
+							 Header  |  Signature
+							      Payload
+Header- It consist of two part:
+						Type of token: JWT
+						Signing Algoritm being used: eg: HMAC SHA256, RSA etc
+------------------------------------------------------------------------------------
+						{
+						"alg" :"SHA256",
+						"typ" :"JWT"
+						}
+------------------------------------------------------------------------------------
+Then this JSON is Base64Url encoded to form firstpart of JWT
+
+Payload:
+        Inside payload we store information about token and user.During Token generation there will be some default
+		claims such as iss(issuer),exp(expiration time),sub(subject),aud(audience) etc.
+		We can also define custom claims related to user such as UserId, Role etc.
+		Basically they contain claims. Claims are statements about an entity(typically the user) and additional data.
+		3 types of claims: Registered
+						   Public
+						   Private
+		Note: Dont store password  or security data as payload.
+
+Signature:
+		Responsible for Integrity and Security of Token
+		To create signature we need to take the encoded header, encoded payload , a secret ,the algorithm specified
+		in the header, and sign that.
+		Eg:
+		--------------------------------------------------------------
+			HMACSHA256{
+			bas64UrlEncode(header)+ '.' +
+			base64UrlEncode(payload).
+			secret}
+		--------------------------------------------------------------
+		This secret will be stored only at server side. Shouldn't be disclosed to anyone outside.
+
+Lets configure this application for JWT authentication in Startup.cs
+Next craete a POST api method to consume web api(Consume Secure API Web Methods from Angular app)
+The JWT token will be stored at browsers local storage. We will send the same token to access the secure or private 
+routes inside the Web Api project.
+
+
+How to access such Private routes using JWT token?
+  Make private routes in Angular application:
+  --Add new API controller (User Profile Controller)
+  --Inside this controller create a get web api method which retrieves details of users.
+
